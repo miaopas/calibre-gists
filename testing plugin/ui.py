@@ -14,7 +14,7 @@ class InterfacePlugin(InterfaceAction):
     # shortcut. Remember that currently calibre has no central management for
     # keyboard shortcuts, so try to use an unusual/unused shortcut.
     action_spec = ('testing', None,
-            'testing', 'Ctrl+Shift+F1')
+            'testing', None)
 
     def genesis(self):
         icon = get_icons('images/icon.png')

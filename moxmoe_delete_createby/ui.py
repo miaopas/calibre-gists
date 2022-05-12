@@ -39,7 +39,7 @@ class InterfacePlugin(InterfaceAction):
     # shortcut. Remember that currently calibre has no central management for
     # keyboard shortcuts, so try to use an unusual/unused shortcut.
     action_spec = ('删除 Createby', None,
-            '删除 Createby', 'Ctrl+Shift+F1')
+            '删除 Createby', None)
 
     def genesis(self):
         self.menu = QMenu(self.gui)

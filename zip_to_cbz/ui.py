@@ -38,7 +38,7 @@ class InterfacePlugin(InterfaceAction):
     # shortcut. Remember that currently calibre has no central management for
     # keyboard shortcuts, so try to use an unusual/unused shortcut.
     action_spec = ('Zip to CBZ', None,
-            'Zip to CBZ', 'Ctrl+Shift+F1')
+            'Zip to CBZ', None)
 
     def genesis(self):
         icon = get_icons('images/icon.png')

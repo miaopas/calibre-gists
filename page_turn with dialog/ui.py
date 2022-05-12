@@ -39,7 +39,7 @@ class InterfacePlugin(InterfaceAction):
     # shortcut. Remember that currently calibre has no central management for
     # keyboard shortcuts, so try to use an unusual/unused shortcut.
     action_spec = ('切换左右翻页', None,
-            '识别当前翻页方式', 'Ctrl+Shift+F1')
+            '识别当前翻页方式', None)
 
     def genesis(self):
         self.menu = QMenu(self.gui)
