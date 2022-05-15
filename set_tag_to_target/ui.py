@@ -6,7 +6,7 @@ __license__   = 'GPL v3'
 __copyright__ = '2011, Kovid Goyal <kovid@kovidgoyal.net>'
 __docformat__ = 'restructuredtext en'
 from qt.core import QDialog, QVBoxLayout, QPushButton, QMessageBox, QLabel
-from calibre.gui2 import error_dialog
+from calibre.gui2 import error_dialog, question_dialog
 from calibre.utils.logging import Log
 from calibre.libunzip import extract as zipextract
 from calibre.ptempfile import TemporaryDirectory
@@ -60,27 +60,29 @@ class InterfacePlugin(InterfaceAction):
 
 
     def action_update_tag_html(self):
+        
         book_ids = self.get_book_ids()
         current_row=self.gui.library_view.currentIndex()
         target_id = self.gui.library_view.model().id(current_row)
-
         db = self.gui.current_db.new_api
         target_title = db.field_for("title", target_id)
-        msg = QMessageBox()
-        msg.setText(f'将已选择书籍标签设置为 {target_title} 的标签：')
-        msg.setStandardButtons(QMessageBox.Ok  | QMessageBox.Cancel)
-        ok = msg.button(QMessageBox.Ok)
-        cancel = msg.button(QMessageBox.Cancel)
-        # msg.buttonClicked.connect(lambda i: self.update_tags(i, ok, cancel))
-        # raise Exception(target_title)
-        msg.exec_()
-        
-        if msg.clickedButton() == ok:
+        if question_dialog(self.gui,'更新标签',f'将已选择书籍标签设置为 {target_title} 的标签：'):
             self.update_tag(book_ids, target_id)
-        elif msg.clickedButton() == cancel:
-            return
-        else:
-            raise Exception('PyQt Button Error happened')
+
+        # msg = QMessageBox()
+        # msg.setText(f'将已选择书籍标签设置为 {target_title} 的标签：')
+        # msg.setStandardButtons(QMessageBox.Ok  | QMessageBox.Cancel)
+        # ok = msg.button(QMessageBox.Ok)
+        # cancel = msg.button(QMessageBox.Cancel)
+        # # msg.buttonClicked.connect(lambda i: self.update_tags(i, ok, cancel))
+        # # raise Exception(target_title)
+        # msg.exec_()
+        # if msg.clickedButton() == ok:
+        #     self.update_tag(book_ids, target_id)
+        # elif msg.clickedButton() == cancel:
+        #     return
+        # else:
+        #     raise Exception('PyQt Button Error happened')
 
     
 
@@ -97,11 +99,3 @@ class InterfacePlugin(InterfaceAction):
                                       current_row=self.gui.library_view.currentIndex().row())
                         
             
-
-
-    def apply_settings(self):
-        from calibre_plugins.interface_demo.config import prefs
-        # In an actual non trivial plugin, you would probably need to
-        # do something based on the settings in prefs
-        prefs
-
