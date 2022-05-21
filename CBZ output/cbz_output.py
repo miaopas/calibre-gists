@@ -68,6 +68,7 @@ class CBZOutput(OutputFormatPlugin):
 
     def convert(self, oeb_book, output_path, input_plugin, opts, log):
         with TemporaryDirectory('_epub_output') as tdir:
+            print(f'Working in {tdir}')
             with CurrentDir(tdir):
                 # unload all book data from manifest
                 for item in oeb_book.manifest:
@@ -86,26 +87,28 @@ class CBZOutput(OutputFormatPlugin):
                 img_path = Path('output_images')
                 img_path.mkdir()
                 id = 0
+                filters = ['jpeg', 'jpg', 'gif', 'png']
                 for item in oeb_book.spine:
                     path =  unquote(item.href)
                     log.info(path)
-
-                    # import time
-                    # time.sleep(2000)
-                    root = ET.parse(path).findall('.//')
+                    import re
+                    with open(path, 'r') as f:
+                        contents = f.read()
+                    res = []
+                    matches = re.findall('"(.*?)"', contents)
+                    for match in matches:
+                        for ext in filters:
+                            if ext in match:
+                                res.append(match)
+                    if len(res) != 1:
+                        raise Exception('Found more than 1 image in one html page!')
                     
-                    
-                    for element in root:
-                        if 'img' in element.tag:
-                            image = Path(element.attrib['src'])
-                            if image.parts[0] in ['..', '.']:
-                                image = Path(*image.parts[1:])
-
-                            ext = image.suffix
-                            image.rename(img_path / Path(f'{id:03d}{ext}'))
-                            id = id + 1
-                            # shutil.copy(image, img_path)
-
+                    image = Path(res[0])
+                    if image.parts[0] in ['..', '.']:
+                        image = Path(*image.parts[1:])
+                    ext = image.suffix
+                    image.rename(img_path / Path(f'{id:03d}{ext}'))
+                    id = id + 1
 
                 def get_files(path, extensions):
                     all_files = []
