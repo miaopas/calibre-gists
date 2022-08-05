@@ -1,6 +1,6 @@
 import imp
 from calibre.gui2.convert import Widget
-from PyQt5 import QtCore, QtWidgets, uic
+# from PyQt5 import QtCore, QtWidgets, uicc
 from pathlib import Path
 from calibre import CurrentDir
 import os
