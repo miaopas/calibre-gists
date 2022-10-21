@@ -80,7 +80,7 @@ class QueueProgressDialogUpdateDirection(QProgressDialog):
                 tree = ET.parse(path)
                 root = tree.getroot()
                 page_turn_mi = None
-                for ele in root.getchildren():
+                for ele in list(root):
                     if 'spine' in ele.tag:
                         if ele.attrib.get('page-progression-direction') is None or ele.attrib['page-progression-direction'] != 'rtl':
                             page_turn_mi =  'L to R'
