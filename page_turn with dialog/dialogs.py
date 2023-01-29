@@ -143,7 +143,7 @@ class QueueProgressDialogChangeDirection(QProgressDialog):
             tree = ET.parse(path)
             root = tree.getroot()
             # Change the opf file itself
-            for ele in root.getchildren():
+            for ele in list(root):
                 if 'spine' in ele.tag:
                     if ele.attrib.get('page-progression-direction') is None or ele.attrib['page-progression-direction'] != 'rtl':
                         ele.attrib['page-progression-direction'] = 'rtl'
