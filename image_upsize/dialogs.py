@@ -14,15 +14,14 @@ try:
     from PyQt5.Qt import QProgressDialog, QTimer
 except ImportError:
     from PyQt4.Qt import QProgressDialog, QTimer
-
-from calibre.gui2 import warning_dialog
+from calibre.gui2 import error_dialog, question_dialog
+from calibre.gui2.my_customised import JumpToFolderBox
 try: # Needed as part of calibre conversion changes in 3.27.0.
     from calibre.ebooks.conversion.config import get_available_formats_for_book
 except ImportError:
     from calibre.gui2.convert.single import get_available_formats_for_book
         
 from calibre.utils.config import prefs
-
 import calibre_plugins.count_pages.config as cfg
 
 try:
@@ -30,134 +29,189 @@ try:
 except NameError:
     pass # load_translations() added in calibre 1.9
 
+from subprocess import Popen, PIPE, STDOUT
+import sys
+import re
+def calibreWrapper(cmd):
+    process = Popen(cmd, stdout=PIPE, stderr=STDOUT)
+
+    # Poll process for new output until finished
+    while True:
+        nextline = process.stdout.readline()
+        if nextline == b'' and process.poll() is not None:
+            break
+        x = re.findall("[0-9]{2}.[0-9]{2}%", output)
+        if len(x)==1:
+            percent = x[0]
+            self.setLabelText(f'正在处理 {input_path.name : >2}  {percent: >2}')
+            self.setValue(self.progress + int(float(percent[:-1])))
+        
+        sys.stdout.write(nextline.decode('utf-8'))
+        sys.stdout.flush()
+        
+
+    output = process.communicate()[0]
+    exitCode = process.returncode
+    print(exitCode, output)
+    if (exitCode == 0):
+        return output
+    else:
+        pass
+
+
 class QueueProgressDialogUpdateDirection(QProgressDialog):
 
-    def __init__(self, gui, book_ids, db):
-        QProgressDialog.__init__(self, _('Working...'), _('Cancel'), 0, len(book_ids), gui)
-        # QProgressDialog.__init__(self, _('Working...'), _('Cancel'), 0, len(book_ids))
-        self.setWindowTitle(_('刷新翻页方向'))
-        self.setMinimumWidth(500)
-        self.book_ids, self.db = book_ids, db
+    def __init__(self, gui, book_id, db):
+        self.book_id, self.db = book_id, db
         self.gui = gui
 
-        self.i, self.books_to_scan = 0, []
-        
-        QTimer.singleShot(0, self.do_book)
-        self.exec_()
+        self.i, self.images_to_do = 0, []
+        self.progress = 0
+        self.do_book()
 
 
-    def do_book(self):
-        book_id = self.book_ids[self.i]
+    def process_image(self, input_path):
+        import re
+        import subprocess
+        from PIL import Image
+        import os
+        output_path = input_path
+
+        # print('------------------------------')
+        # print(get_resources('realesrgan-ncnn-vulkan').decode)
+        cmd = ['/Users/haruka/Calibre Extra Files/realesrgan-ncnn-vulkan', '-i', input_path, '-o', output_path, '-n', 'realesrgan-x4plus-anime']
+        def calibreWrapper(cmd):
+            process = Popen(cmd, stdout=PIPE, stderr=STDOUT)
+
+            # Poll process for new output until finished
+            while True:
+                nextline = process.stdout.readline()
+                if nextline == b'' and process.poll() is not None:
+                    break
+                output = nextline.decode('utf-8')
+                x = re.findall("[0-9]{2}.[0-9]{2}%", output)
+                if len(x)==1:
+                    percent = x[0]
+                    self.setLabelText(f'正在处理 {input_path.name : >2}  {percent: >2}')
+                    self.setValue(self.progress + int(float(percent[:-1])))
+                
+                sys.stdout.write(nextline.decode('utf-8'))
+                sys.stdout.flush()
+
+        # def run_command(command):
+        #     print('inside run command')
+        #     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr = subprocess.STDOUT, shell=True)
+            
+        #     for line in iter(process.stdout.readline, b''):
+        #         output = line.decode("utf-8").replace('\n','')
+        #         print(output)
+        #         x = re.findall("[0-9]{2}.[0-9]{2}%", output)
+        #         if len(x)==1:
+        #             percent = x[0]
+        #             self.setLabelText(f'正在处理 {input_path.name : >2}  {percent: >2}')
+        #             self.setValue(self.progress + int(float(percent[:-1])))
+
+        #     process.stdout.close()
+        #     process.wait()
+
+        print(f'Begin processing {input_path}')
+        im = Image.open(input_path)
+        original_size = im.size
+        print(f'Image size: {original_size}')
+        minimum_width = 2048
+        if original_size[0]<minimum_width:
+            original_size = (minimum_width, int(minimum_width*original_size[1]/original_size[0]))
+
+            print(f'Too small, reshape to size: {original_size}')
+
+        print(f'Begin upsampling')
+        # upsamping
+        calibreWrapper(cmd)
+        # run_command(cmd)
+        im = Image.open(output_path)
+        im = im.resize(original_size, resample=Image.LANCZOS)
+        im.save(output_path)
+
+    def do_page(self):
+        image_path = self.images_to_do[self.i]
         self.i += 1
-        db =self.db
+        
         try:
-            print(f'Current on {db.field_for("title", book_id)}')
-            title = db.field_for("title", book_id)
-            print(f'Current on {title}')
-            self.setLabelText(_('正在处理 ')+title)
-            if db.has_format(book_id, 'AZW3'):
-                fmt = 'AZW3'
-            elif db.has_format(book_id, 'EPUB'):
-                fmt = 'EPUB'
-            # elif db.has_format(book_id, 'MOBI'):
-            #     fmt = 'MOBI'
-            else:
-                fmt = None
+            print(f'Current on {image_path.name}')
+            self.process_image(image_path)
 
-            if fmt:
-                epub_path = db.format_abspath(book_id, fmt)
-                try:
-                    container = get_container(epub_path, tweak_mode=True)
-                except Exception as e:
-                    raise Exception(str(e) + str(book_id))
-
-                path = container.opf_dir + '/' + container.opf_name.split('/')[-1]
-                
-
-                print(f'container.opf_dir :  {container.opf_dir}')
-                print(f'container.opf_name : {container.opf_name}')
-
-                tree = ET.parse(path)
-                root = tree.getroot()
-                page_turn_mi = None
-                for ele in list(root):
-                    if 'spine' in ele.tag:
-                        if ele.attrib.get('page-progression-direction') is None or ele.attrib['page-progression-direction'] != 'rtl':
-                            page_turn_mi =  'L to R'
-                        elif ele.attrib['page-progression-direction'] == 'rtl':
-                            page_turn_mi =  'R to L'
-                
-                db.set_field('#page_turn_direction', {book_id: page_turn_mi})
-
-                print("finished writing to columns")
-                print()
         except Exception as e:
             raise e
 
-        # self.gui.library_view.selectionModel().clearSelection()
-        self.setValue(self.i)
-        if self.i >= len(self.book_ids):
+        self.progress = self.i*100
+        self.setValue(self.progress)
+
+        if self.i >= len(self.images_to_do):
             self.gui = None
             return
         else:
-            QTimer.singleShot(0, self.do_book)
+            QTimer.singleShot(0, self.do_page)
 
-
-class QueueProgressDialogChangeDirection(QProgressDialog):
-
-    def __init__(self, gui, book_ids, db):
-        QProgressDialog.__init__(self, _('Working...'), _('Cancel'), 0, len(book_ids), gui)
-        self.setWindowTitle(_('切换翻页方向'))
-        self.setMinimumWidth(500)
-        self.book_ids, self.db = book_ids, db
-        self.gui = gui
-
-        self.i, self.books_to_scan = 0, []
-        
-        QTimer.singleShot(0, self.do_book)
-        self.exec_()
-
+    def back_up_file(self, book_path):
+        from pathlib import Path
+        p = Path(book_path)
+        bk_file_name = p.name + '.bk'
+        bk_file_path = p.parent / Path(bk_file_name)
+        if bk_file_path.exists():
+            print('Backup already exists')
+        else:
+            import shutil
+            shutil.copy(book_path, bk_file_path)
+            print('Backup successful')
 
     def do_book(self):
-        book_id = self.book_ids[self.i]
-        self.i += 1
         db =self.db
-        title = db.field_for("title", book_id)
+        title = db.field_for("title", self.book_id)
         print(f'Current on {title}')
-        self.setLabelText(_('正在处理 ')+title)
-        if db.has_format(book_id, 'AZW3'):
+    
+        if db.has_format(self.book_id, 'AZW3'):
             fmt = 'AZW3'
-        elif db.has_format(book_id, 'EPUB'):
+        elif db.has_format(self.book_id, 'EPUB'):
             fmt = 'EPUB'
         else:
             fmt = None
 
         if fmt:
-            db.save_original_format(book_id, fmt)
-            epub_path = db.format_abspath(book_id, fmt)
-            # with TemporaryDirectory('_modify-epub') as tdir:
-            #     with CurrentDir(tdir):
-            container = get_container(epub_path, tweak_mode=True)
-            path = container.opf_dir + '/' + container.opf_name
-            print(path)
-            tree = ET.parse(path)
-            root = tree.getroot()
-            # Change the opf file itself
-            for ele in list(root):
-                if 'spine' in ele.tag:
-                    if ele.attrib.get('page-progression-direction') is None or ele.attrib['page-progression-direction'] != 'rtl':
-                        ele.attrib['page-progression-direction'] = 'rtl'
-                    elif ele.attrib['page-progression-direction'] == 'rtl':
-                        del ele.attrib['page-progression-direction']
+            
+            epub_path = db.format_abspath(self.book_id, fmt)
+            print(f'Book Path: {epub_path}')
+            # Backup original file
+            self.back_up_file(epub_path)
     
-            tree._setroot(root)
-            tree.write(path)
-            # commit the changes
-            container.commit()
-            print("finished edit books")        
 
-        self.setValue(self.i)
-        if self.i >= len(self.book_ids):
-            return
-        else:
-            QTimer.singleShot(0, self.do_book)
+            container = get_container(epub_path, tweak_mode=True)
+            book_path = container.opf_dir
+            print(f'Container Path: {book_path}')
+
+            # from pathlib import Path
+            # images = []
+            # types = ('*.jpg', '*.JPG', '*.PNG', '*.png', '*.jpeg', '*.JPEG', 
+            # '*.tiff', '*.GIF',  '*.gif') # the tuple of file types
+            # for ext in types:
+            #     images.extend(Path(book_path).rglob(ext))
+            # print(f'Totally {len(images)} images')
+
+            # if len(images) == 0:
+            #     return None
+            # self.images_to_do = sorted(images)
+            # # self.images_to_do = images
+
+            # print('here')
+
+            # QProgressDialog.__init__(self, _('Working...'), _('Cancel'), 0, len(images)*100, self.gui)
+            # self.setWindowTitle(_('提升画质'))
+            # self.setMinimumWidth(500)
+             
+            # QTimer.singleShot(0, self.do_page)
+            # self.exec_()
+            
+            if JumpToFolderBox(JumpToFolderBox.QUESTION, '请处理图片', f'书籍已解压, 请处理图片后继续', f'{book_path}', parent=self.gui,
+                   show_copy_button=True, default_yes=True,
+                   q_icon=None, yes_text='继续', no_text='取消',
+                   yes_icon=None, no_icon=None, add_abort_button=False):
+                container.commit()

@@ -68,6 +68,10 @@ class InterfacePlugin(InterfaceAction):
         db = self.gui.current_db.new_api
         d = QueueProgressDialogChangeDirection(self.gui, book_ids, db)
         d.show()
+
+        if d.wasCanceled():
+            return 
+
         self.update_turn_direction_column(book_ids)
 
     def action_update_turn_direction_column(self):

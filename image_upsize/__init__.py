@@ -8,7 +8,6 @@ __docformat__ = 'restructuredtext en'
 
 # The class that all Interface Action plugin wrappers must inherit from
 from calibre.customize import InterfaceActionBase
-
 class InterfacePluginDemo(InterfaceActionBase):
     '''
     This class is a simple wrapper that provides information about the actual
@@ -29,7 +28,7 @@ class InterfacePluginDemo(InterfaceActionBase):
     #: This field defines the GUI plugin class that contains all the code
     #: that actually does something. Its format is module_path:class_name
     #: The specified class must be defined in the specified module.
-    actual_plugin       = 'calibre_plugins.page_turn.ui:InterfacePlugin'
+    actual_plugin       = 'calibre_plugins.image_upscale.ui:InterfacePlugin'
 
     def is_customizable(self):
         '''
