@@ -186,8 +186,7 @@ class QueueProgressDialogUpdateDirection(QProgressDialog):
 
             container = get_container(epub_path, tweak_mode=True)
             book_path = container.opf_dir
-            print(f'Container Path: {book_path}')
-
+            print(f'!!!!!!Container Path: {book_path}')
             # from pathlib import Path
             # images = []
             # types = ('*.jpg', '*.JPG', '*.PNG', '*.png', '*.jpeg', '*.JPEG', 
@@ -209,9 +208,11 @@ class QueueProgressDialogUpdateDirection(QProgressDialog):
              
             # QTimer.singleShot(0, self.do_page)
             # self.exec_()
-            
+            print(f'File size {os.path.getsize(book_path)}')
             if JumpToFolderBox(JumpToFolderBox.QUESTION, '请处理图片', f'书籍已解压, 请处理图片后继续', f'{book_path}', parent=self.gui,
                    show_copy_button=True, default_yes=True,
                    q_icon=None, yes_text='继续', no_text='取消',
                    yes_icon=None, no_icon=None, add_abort_button=False):
                 container.commit()
+                print(f'File size {os.path.getsize(book_path)}')
+            # db.format_metadata(self.book_id, fmt, update_db=True, commit=True)

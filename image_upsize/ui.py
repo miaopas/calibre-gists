@@ -65,6 +65,7 @@ class InterfacePlugin(InterfaceAction):
     def action_image_upscale_azw(self):
 
         book_id = self.get_book_id()
+        print('!!!!!!!!!!!!!!!!!')
         print(book_id)
         if not book_id:
             return 
@@ -139,6 +140,7 @@ class InterfacePlugin(InterfaceAction):
             
             if ret:
                 container.commit()
+                db.format_metadata(self.book_id, fmt, update_db=True)
                 return True
             else:
                 return False
@@ -172,6 +174,7 @@ class InterfacePlugin(InterfaceAction):
                         zfile.add_dir(str(extract_dir))
                         zfile.close()
                         db.add_format(self.book_id, 'cbz', str(tbook_path), True, False)
+                        db.format_metadata(self.book_id, fmt, update_db=True)
                         return True
                     else:
                         return False
